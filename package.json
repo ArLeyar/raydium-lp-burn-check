@@ -1,0 +1,16 @@
+{
+  "name": "raydium-lp-burn-check",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@raydium-io/raydium-sdk-v2": "^0.1.132-alpha",
+    "@solana/web3.js": "^1.98.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.16",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
