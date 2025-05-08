@@ -10,7 +10,8 @@ export async function getPoolInfo(poolAddress: string): Promise<ApiV3PoolInfoIte
   const raydium = await getRaydium();
   
   const poolsData = await raydium.api.fetchPoolById({ ids: poolAddress });
-  if (!poolsData || !poolsData.length) {
+  
+  if (!poolsData || !poolsData.length || poolsData[0] === null) {
     throw new Error("Pool not found");
   }
   
