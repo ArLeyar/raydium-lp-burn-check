@@ -1,4 +1,9 @@
-import { getLpBurnPercentage, getPoolInfo } from './lpBurnChecker';
+import { Connection } from "@solana/web3.js";
+import { RaydiumSdkClient } from './raydium-sdk-client';
+
+const RPC_URL = "https://api.mainnet-beta.solana.com";
+const connection = new Connection(RPC_URL);
+const raydiumClient = new RaydiumSdkClient(connection);
 
 const poolAddresses = [
   "4YekqhuTmgBq7Fy6qtmpCQL4Kgqp1TUcGNbXMvEt4BtR",
@@ -33,10 +38,10 @@ async function checkPools() {
   
   for (const poolAddress of poolAddresses) {
     try {
-      const poolInfo = await getPoolInfo(poolAddress);
+      const poolInfo = await raydiumClient.getPoolInfo(poolAddress);
       const pairName = `${poolInfo.mintA.symbol}-${poolInfo.mintB.symbol}`;
       const poolType = getPoolType(poolInfo.programId);
-      const burnPercentage = await getLpBurnPercentage(poolAddress);
+      const burnPercentage = await raydiumClient.getLpBurnPercentage(poolAddress);
       console.log(`${pairName} - ${poolType} - ${burnPercentage.toFixed(2)}%`);
     } catch (error) {
       console.error(`Error processing pool ${poolAddress}: ${error}`);
