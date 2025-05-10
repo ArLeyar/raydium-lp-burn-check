@@ -33,9 +33,8 @@ export class RaydiumClient {
   async getLpBurnPercentageRpc(poolId: string): Promise<number> {
     const lpMint = await this.getLpMintForPool(poolId);
     const totalSupply = await this.getLpTotalSupply(lpMint);
-    if (totalSupply === 0) return 100;
-
     const burnedAmount = await this.getBurnedAmountRpc(lpMint);
+    
     return (burnedAmount / (totalSupply + burnedAmount)) * 100;
   }
 
@@ -98,9 +97,8 @@ export class RaydiumClient {
   async getLpBurnPercentageHelius(poolId: string): Promise<number> {
     const lpMint = await this.getLpMintForPool(poolId);
     const totalSupply = await this.getLpTotalSupply(lpMint);
-    if (totalSupply === 0) return 100;
-
     const burnedAmount = await this.getBurnedAmountHelius(lpMint);
+    
     return (burnedAmount / (totalSupply + burnedAmount)) * 100;
   }
 
