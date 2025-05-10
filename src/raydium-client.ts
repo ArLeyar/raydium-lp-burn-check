@@ -3,6 +3,9 @@ import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { raydiumAmmProgram, RaydiumAmm } from "./raydium-amm/program";
 import { getMint } from "@solana/spl-token";
 import { HeliusClient } from "./helius-client";
+import { setTimeout } from 'timers/promises';
+
+const RPC_TIMEOUT_MS = 108; // 10 RPS limit
 
 export class RaydiumClient {
   private connection: Connection;
@@ -36,8 +39,45 @@ export class RaydiumClient {
   }
 
   private async getBurnedAmountRpc(lpMint: PublicKey): Promise<number> {
-    //TODO: Implement this
-    return 0;
+    const mintInfo = await getMint(this.connection, lpMint);
+    const decimals = mintInfo.decimals;
+    let totalBurned = 0n;
+    let lastSignature: string | null = null;
+
+    while (true) {
+      const options: any = { limit: 1000 };
+      if (lastSignature) options.before = lastSignature;
+      
+      const signatures = await this.connection.getSignaturesForAddress(lpMint, options, "confirmed");
+      if (signatures.length === 0) break;
+      
+      for (const sig of signatures) {
+        await setTimeout(RPC_TIMEOUT_MS);
+        
+        const tx = await this.connection.getParsedTransaction(sig.signature, {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0
+        });
+        
+        if (!tx?.meta) continue;
+
+        for (const ix of tx.transaction.message.instructions) {
+          if (
+            "programId" in ix &&
+            ix.programId.toString() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" &&
+            "parsed" in ix &&
+            ix.parsed?.type === "burn"
+          ) {
+            totalBurned += BigInt(ix.parsed.info.amount);
+          }
+        }
+      }
+      
+      lastSignature = signatures[signatures.length - 1].signature;
+      if (signatures.length < 1000) break;
+    }
+    
+    return Number(totalBurned) / Math.pow(10, decimals);
   }
   
   private async getLpMintForPool(poolId: string): Promise<PublicKey> {
