@@ -8,7 +8,7 @@ npm-debug.log*
 temp
 
 # Environment variables
-.env*
+.env
 
 # TypeScript cache
 *.tsbuildinfo

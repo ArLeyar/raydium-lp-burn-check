@@ -5,11 +5,13 @@
     "start": "ts-node src/index.ts"
   },
   "dependencies": {
-    "@raydium-io/raydium-sdk-v2": "^0.1.132-alpha",
-    "@solana/web3.js": "^1.98.2",
-    "@solana/spl-token": "^0.4.13",
     "@coral-xyz/anchor": "0.29.0",
-    "@native-to-anchor/buffer-layout": "^0.1.0"
+    "@native-to-anchor/buffer-layout": "^0.1.0",
+    "@raydium-io/raydium-sdk-v2": "^0.1.132-alpha",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.2",
+    "axios": "^1.9.0",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.16",

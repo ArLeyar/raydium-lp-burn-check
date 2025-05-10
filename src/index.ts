@@ -1,9 +1,16 @@
 import { Connection } from "@solana/web3.js";
 import { RaydiumSdkClient } from './raydium-sdk-client';
+import { RaydiumAnchorClient } from './raydium-anchor-client';
+import * as dotenv from 'dotenv';
 
-const RPC_URL = "https://api.mainnet-beta.solana.com";
+dotenv.config();
+
+const RPC_URL = process.env.RPC_URL || "https://api.mainnet-beta.solana.com";
+const RPC_RPS_LIMIT = Number(process.env.RPC_RPS_LIMIT) || 1;
+
 const connection = new Connection(RPC_URL);
-const raydiumClient = new RaydiumSdkClient(connection);
+const raydiumSdkClient = new RaydiumSdkClient(connection);
+const raydiumAnchorClient = new RaydiumAnchorClient(connection, RPC_RPS_LIMIT);
 
 const poolAddresses = [
   "4YekqhuTmgBq7Fy6qtmpCQL4Kgqp1TUcGNbXMvEt4BtR",
@@ -38,15 +45,28 @@ async function checkPools() {
   
   for (const poolAddress of poolAddresses) {
     try {
-      const poolInfo = await raydiumClient.getPoolInfo(poolAddress);
+      const poolInfo = await raydiumSdkClient.getPoolInfo(poolAddress);
       const pairName = `${poolInfo.mintA.symbol}-${poolInfo.mintB.symbol}`;
       const poolType = getPoolType(poolInfo.programId);
-      const burnPercentage = await raydiumClient.getLpBurnPercentage(poolAddress);
-      console.log(`${pairName} - ${poolType} - ${burnPercentage.toFixed(2)}%`);
+      const burnPercentage = await raydiumSdkClient.getLpBurnPercentage(poolAddress);
+      console.log(`${pairName} - ${poolType} - ${burnPercentage.toFixed(2)}% - ${poolAddress}`);
     } catch (error) {
       console.error(`Error processing pool ${poolAddress}: ${error}`);
     }
   }
 }
 
-checkPools();
+async function testIdlClient() {
+  const testPool = "4AZRPNEfCJ7iw28rJu5aUyeQhYcvdcNm8cswyL51AY9i";
+  try {
+    console.log(`\n----- Testing RaydiumAnchorClient with pool ${testPool} -----`);
+    const burnPercentage = await raydiumAnchorClient.getLpBurnPercentage(testPool);
+    console.log(`LP burn percentage: ${burnPercentage.toFixed(2)}%`);
+    console.log(`\n----- End of tests -----`);
+  } catch (error) {
+    console.error(`Error: ${error}`);
+  }
+}
+
+//checkPools();
+testIdlClient();
