@@ -1,72 +1,55 @@
 import { Connection } from "@solana/web3.js";
 import { RaydiumSdkClient } from './raydium-sdk-client';
-import { RaydiumAnchorClient } from './raydium-anchor-client';
+import { RaydiumClient } from './raydium-client';
+import { HeliusClient } from './helius-client';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
 const RPC_URL = process.env.RPC_URL || "https://api.mainnet-beta.solana.com";
-const RPC_RPS_LIMIT = Number(process.env.RPC_RPS_LIMIT) || 1;
+const HELIUS_API_KEY = process.env.HELIUS_API_KEY || "";
 
 const connection = new Connection(RPC_URL);
+const heliusClient = new HeliusClient(HELIUS_API_KEY);
+const raydiumClient = new RaydiumClient(connection, heliusClient);
 const raydiumSdkClient = new RaydiumSdkClient(connection);
-const raydiumAnchorClient = new RaydiumAnchorClient(connection, RPC_RPS_LIMIT);
 
 const poolAddresses = [
-  "4YekqhuTmgBq7Fy6qtmpCQL4Kgqp1TUcGNbXMvEt4BtR",
-  "AUUXZxw1uizZZqna65fdM1ct1f2GWqkivSGyqm55mWQK",
-  "Bzc9NZfMqkXR6fz1DBph7BDf9BroyEf6pnzESP7v5iiw",
-  "J333LZ5UhEjwxb64dcD756viUFXr164dVNxQpXuMPH9V",
-  "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2",
-  "4AZRPNEfCJ7iw28rJu5aUyeQhYcvdcNm8cswyL51AY9i",
-  "AS5MV3ear4NZPMWXbCsEz3AdbCaXEnq4ChdaWsvLgkcM",
-  "4fnrjdmQcfC1AcmH2qbq52QH6xa1MYo9212Ue6fhXN63",
-  "zZHEShHcuD5QyA3LNc5FGzT4MS7zK2NPx5dQt1u5sw2",
-  "ZShgFP9NUJfDZ4RyQkn337GS73VtJjPQfpRFMKndvUZ",
-  "6UmmUiYoBjSrhakAobJw8BvkmJtDVxaeBtbt7rxWo1mg",
-  "5yZUYGpnhsuaAQ3jKRLDVSXunDXTgkRUJrYoeP6aNctZ", //wrong pool address
+  "F6L22zNLPUV2uQjENLnBN89NUay1pyMXhVxa3HT3XUEz", // WSOL-XWH - 99.98%
+  "3PsWheVt2Z23DVvqaS9eyB3rJP96sxVaueFKBXw6ZSpD", // WSOL-BUMBANA - 93.76%
+  "Hd7WiNZzZiGGhsHQa79n3mTrFoMkfJnJn619iTqkRkcQ", // WSOL-LIGMA - 0%
+  "CgUWFmqcjFb8YTV8jTj1fvpCqTv9uqaA9VhbRF9FMVyh", // VHS-WSOL - 93.38%
+  "Ap975tKrfdTyXWtFjYkHs8KqgTmQpqRU8aMzLgijdRiQ", // Tom&Jerry-WSOL - 0%
+  "4YekqhuTmgBq7Fy6qtmpCQL4Kgqp1TUcGNbXMvEt4BtR", // ADA-WSOL - 100%
+  "CJVLgaSSuGarPWLx57f79T1EEMKg26fM1o3MMm1afD6J", // IQ50-WSOL - 57.96%
+  "FXvEbWbzGxKMFBa9vT18YhJ2GzvHkz4E1BBN7Tr5Aur4", // RED-WSOL - 100%
+  "HbWYJ7kSAhbg42rMQM7en38BnYyTpMrwDu6fCquD1TAt", // SHOL-WSOL - 100%
+  "FEhz48ovHkjKGAjLmRVqsDc8r6T9hXCZf8N4GSzw3dv3", // SKING-WSOL - 100%
 ];
 
-const getPoolType = (programId: string): string => {
-  switch (programId) {
-    case 'CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C':
-      return 'Standard AMM (CP-Swap)';
-    case '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8':
-      return 'Legacy AMM v4 (OpenBook)';
-    case 'CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK':
-      return 'Concentrated Liquidity (CLMM)';
-    default:
-      return 'Unknown';
-  }
-};
-
 async function checkPools() {
-  console.log('PAIR - TYPE - BURNT PERCENTAGE');
+  console.log('PAIR - TVL - SDK BURN % - HELIUS BURN % - INDICATOR - ADDRESS');
   
   for (const poolAddress of poolAddresses) {
     try {
       const poolInfo = await raydiumSdkClient.getPoolInfo(poolAddress);
       const pairName = `${poolInfo.mintA.symbol}-${poolInfo.mintB.symbol}`;
-      const poolType = getPoolType(poolInfo.programId);
-      const burnPercentage = await raydiumSdkClient.getLpBurnPercentage(poolAddress);
-      console.log(`${pairName} - ${poolType} - ${burnPercentage.toFixed(2)}% - ${poolAddress}`);
+      
+      const sdkBurnPercentage = await raydiumSdkClient.getLpBurnPercentage(poolAddress);
+      const anchorBurnPercentage = await raydiumClient.getLpBurnPercentageHelius(poolAddress);
+      
+      const indicator = Math.abs(sdkBurnPercentage - anchorBurnPercentage) < 0.01 ? '✅' : '❌';
+      
+      console.log(
+        `${pairName} - $${poolInfo.tvl.toLocaleString()} - ` +
+        `${sdkBurnPercentage.toFixed(2)}% - ` +
+        `${anchorBurnPercentage.toFixed(2)}% ${indicator} - ` +
+        poolAddress
+      );
     } catch (error) {
       console.error(`Error processing pool ${poolAddress}: ${error}`);
     }
   }
 }
 
-async function testIdlClient() {
-  const testPool = "4AZRPNEfCJ7iw28rJu5aUyeQhYcvdcNm8cswyL51AY9i";
-  try {
-    console.log(`\n----- Testing RaydiumAnchorClient with pool ${testPool} -----`);
-    const burnPercentage = await raydiumAnchorClient.getLpBurnPercentage(testPool);
-    console.log(`LP burn percentage: ${burnPercentage.toFixed(2)}%`);
-    console.log(`\n----- End of tests -----`);
-  } catch (error) {
-    console.error(`Error: ${error}`);
-  }
-}
-
-//checkPools();
-testIdlClient();
+checkPools();
