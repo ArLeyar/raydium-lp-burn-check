@@ -5,7 +5,7 @@ import { getMint } from "@solana/spl-token";
 import { HeliusClient } from "./helius-client";
 import { setTimeout } from 'timers/promises';
 
-const RPC_TIMEOUT_MS = 108; // 10 RPS limit
+const RPC_TIMEOUT_MS = 150;
 
 export class RaydiumClient {
   private connection: Connection;
@@ -62,13 +62,16 @@ export class RaydiumClient {
         if (!tx?.meta) continue;
 
         for (const ix of tx.transaction.message.instructions) {
-          if (
-            "programId" in ix &&
-            ix.programId.toString() === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" &&
-            "parsed" in ix &&
-            ix.parsed?.type === "burn"
-          ) {
-            totalBurned += BigInt(ix.parsed.info.amount);
+          if ("programId" in ix) {
+            const programId = ix.programId.toString();
+            if (programId === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") {
+              if ("parsed" in ix) {
+                if (ix.parsed?.type === "burn" || ix.parsed?.type === "burnChecked") {
+                  const amount = BigInt(ix.parsed.info.tokenAmount?.amount || ix.parsed.info.amount);
+                  totalBurned += amount;
+                }
+              }
+            }
           }
         }
       }
